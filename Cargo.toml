@@ -1,0 +1,21 @@
+[package]
+name = "reminisu_economy"
+version = "0.2.0"
+edition = "2024"
+default-run = "reminisu_economy"
+
+[features]
+default = []
+gui = ["dep:eframe"]
+
+[[bin]]
+name = "reminisu_gui"
+path = "src/bin/reminisu_gui.rs"
+required-features = ["gui"]
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["arbitrary_precision"] }
+toml = "0.8"
+csv = "1"
+eframe = { version = "0.31.1", optional = true, default-features = false, features = ["default_fonts", "glow", "x11", "wayland"] }

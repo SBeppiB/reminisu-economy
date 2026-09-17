@@ -1,0 +1,44 @@
+# All tuning in this document is NON-CANON.
+status = "PLACEHOLDER"
+[demand]
+yearly_variation_percent = 18
+momentum_percent = 25
+price_sensitivity_percent = 35
+max_price_change_percent = 6
+[production]
+inventory_buffer_percent = 125
+
+# Invented economic parameters; basis points use 10000 = 100%.
+[economics]
+status = "PLACEHOLDER"
+growth_bps = 100
+inflation_bps = 200
+interest_bps = 400
+macro_volatility_bps = 150
+demand_conditions_bps = 10000
+shock_probability_percent = 8
+shock_size_bps = 1500
+backlog_percent = 25
+loyalty_percent = 20
+availability_percent = 30
+recent_price_sensitivity_percent = 30
+desired_margin_percent = 30
+cost_price_weight_percent = 20
+competitor_price_weight_percent = 20
+inventory_price_weight_percent = 8
+stockout_price_weight_percent = 4
+credit_spread_bps = 200
+repayment_percent = 25
+cash_reserve_percent = 100
+bankruptcy_after_years = 3
+bankruptcy_enabled = true
+maintenance_bps = 100
+expansion_percent = 10
+expansion_cost_multiple = 3
+depreciation_percent = 10
+research_cash_percent = 0
+research_success_percent = 40
+research_step_bps = 250
+research_limit_bps = 3000
+share_event_threshold_bps = 1000
+excess_inventory_percent = 200

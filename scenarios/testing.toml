@@ -1,0 +1,42 @@
+# Starting quantities are NON-CANON. Money uses integer minor units (100/unit).
+status = "PLACEHOLDER"
+[pilton]
+name = "Pilton Dynamics"
+primary_currency = "Ufc"
+starting_cash = { currency = "Ufc", minor_units = 125000000 }
+base_operating_expenses = { currency = "Ufc", minor_units = 14500000 }
+credit_limit = { currency = "Ufc", minor_units = 50000000 }
+[[products]]
+name = "E.N.D Suits"
+category = "Tactical exosuits"
+input_share_percent = 60
+maximum_capacity = 64
+production_cost = { currency = "Ufc", minor_units = 6200000 }
+starting_market_value = { currency = "Ufc", minor_units = 9600000 }
+starting_inventory = 2
+base_demand = 12
+production_capacity = 16
+popularity_percent = 105
+[[products]]
+name = "A.B.Y.S.S Suits"
+category = "Heavy exosuits"
+input_share_percent = 70
+maximum_capacity = 24
+production_cost = { currency = "Ufc", minor_units = 18000000 }
+starting_market_value = { currency = "Ufc", minor_units = 27500000 }
+starting_inventory = 1
+base_demand = 4
+production_capacity = 6
+popularity_percent = 100
+
+[[markets]]
+category = "Tactical exosuits"
+annual_customers = 16
+maximum_customers = 64
+growth_bps = 0
+
+[[markets]]
+category = "Heavy exosuits"
+annual_customers = 6
+maximum_customers = 24
+growth_bps = 0

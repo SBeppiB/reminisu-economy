@@ -3,6 +3,21 @@ use crate::simulation::{Simulation, SimulationError};
 use serde_json::{Value, json};
 use std::path::Path;
 pub const HISTORY_FORMAT_VERSION: u32 = 3;
+/// Read-only current company state, deliberately not a starting configuration.
+pub fn snapshot_document(sim: &Simulation, company: usize) -> Result<Value, SimulationError> {
+    let f = sim
+        .companies()
+        .get(company)
+        .ok_or_else(|| SimulationError::InvalidInput("Choose a company to export.".into()))?;
+    crate::portable::exact_value(&json!({
+        "kind": "company_snapshot", "format_version": 1,
+        "next_year": sim.current_year(), "start_year": sim.start_year(),
+        "seed": sim.seed().to_string(), "company": f,
+        "financial_totals": f.financial_totals()?,
+        "latest_year": sim.history().records().iter().rev().find(|r| r.faction_name == f.name),
+        "reimportable": false
+    }))
+}
 /// Shared format-2 seed comparison envelope; callers may add source provenance.
 pub fn comparison_document(
     request: &crate::control::RunRequest,

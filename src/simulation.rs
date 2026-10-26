@@ -71,6 +71,9 @@ impl Simulation {
             )?;
             company.debt = f.starting_debt.unwrap_or(Money::zero(f.primary_currency));
             company.credit_limit = f.credit_limit.unwrap_or(Money::zero(f.primary_currency));
+            company.productive_assets = f
+                .starting_productive_assets
+                .unwrap_or(Money::zero(f.primary_currency));
             company.financial_totals()?;
             companies.push(company);
         }
@@ -460,7 +463,13 @@ pub fn validate_config(config: &SimulationConfig) -> Result<(), SimulationError>
         let zero = Money::zero(f.primary_currency);
         let debt = f.starting_debt.unwrap_or(zero);
         let limit = f.credit_limit.unwrap_or(zero);
-        for money in [f.starting_cash, f.base_operating_expenses, debt, limit] {
+        for money in [
+            f.starting_cash,
+            f.base_operating_expenses,
+            debt,
+            limit,
+            f.starting_productive_assets.unwrap_or(zero),
+        ] {
             if money.currency() != f.primary_currency || money.minor_units() < 0 {
                 return Err(invalid(
                     "company money must be nonnegative and use its primary currency",

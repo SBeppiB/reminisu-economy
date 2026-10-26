@@ -1,0 +1,24 @@
+﻿format_version = 1
+kind = "company"
+
+[company.faction]
+name = "Example Manufacturing"
+primary_currency = "Ufc"
+starting_cash = { currency = "Ufc", minor_units = "125000000" }
+starting_debt = { currency = "Ufc", minor_units = "0" }
+credit_limit = { currency = "Ufc", minor_units = "50000000" }
+base_operating_expenses = { currency = "Ufc", minor_units = "14500000" }
+starting_productive_assets = { currency = "Ufc", minor_units = "0" }
+
+[[company.products]]
+name = "Example Suit"
+category = "Tactical exosuits"
+production_cost = { currency = "Ufc", minor_units = "6200000" }
+starting_market_value = { currency = "Ufc", minor_units = "9600000" }
+starting_inventory = 2
+starting_inventory_basis = { currency = "Ufc", minor_units = "12400000" }
+base_demand = 12
+production_capacity = 16
+maximum_capacity = 64
+popularity_percent = 105
+input_share_percent = 70

@@ -12,6 +12,8 @@ pub mod history;
 pub mod investment;
 pub mod market;
 mod operations;
+pub mod portable;
+pub mod presentation;
 pub mod pricing;
 pub mod simulation;
 pub mod technology;

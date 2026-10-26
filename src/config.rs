@@ -28,6 +28,8 @@ impl Default for SimulationConfig {
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct FactionConfig {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub starting_productive_assets: Option<Money>,
     #[serde(default)]
     pub credit_limit: Option<Money>,
     #[serde(default)]

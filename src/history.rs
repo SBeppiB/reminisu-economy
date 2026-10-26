@@ -2,6 +2,10 @@ use crate::currency::{CurrencyError, Money};
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct ProductHistoryRecord {
+    /// Read-only trace of the existing production request, before affordability.
+    /// Optional so older serialized histories still deserialize.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub requested_production: Option<u64>,
     pub category: String,
     pub cost_of_goods_sold: Money,
     pub production_spending: Money,

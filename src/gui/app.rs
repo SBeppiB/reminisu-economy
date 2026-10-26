@@ -18,9 +18,12 @@ const SCREENS: [&str; 8] = [
     "Economy",
     "Events",
     "Seed Comparison",
-    "Configuration",
+    "Scenario Builder",
 ];
 pub struct EconomyApp {
+    editor: super::editor::Editor,
+    confirm_run: Option<bool>,
+    pending_export: Option<(std::path::PathBuf, usize)>,
     controller: Option<Controller>,
     screen: usize,
     status: String,
@@ -97,11 +100,14 @@ impl EconomyApp {
         });
         let initial = Controller::new(3421, 42, SimulationConfig::default());
         let status = initial.as_ref().err().map_or(
-            "Ready • bundled testing scenario • PLACEHOLDER assumptions".into(),
+            "Ready · bundled testing scenario · PLACEHOLDER assumptions".into(),
             ToString::to_string,
         );
         let error = initial.is_err();
         Self {
+            editor: Default::default(),
+            confirm_run: None,
+            pending_export: None,
             controller: initial.ok(),
             screen: 0,
             status,
@@ -125,7 +131,7 @@ impl EconomyApp {
         self.error = result.is_err();
         self.status = result
             .err()
-            .map_or_else(|| success.into(), |e| format!("ERROR • {e}"));
+            .map_or_else(|| success.into(), |e| format!("ERROR · {e}"));
     }
     fn parse_seed(&self) -> Result<u64, SimulationError> {
         self.seed.trim().parse().map_err(|_| {
@@ -182,6 +188,7 @@ impl EconomyApp {
                 self.status = "Stopped after last committed year".into();
             }
         });
+        ui.collapsing("Restart / advanced run controls", |ui| {
         ui.horizontal_wrapped(|ui| {
             ui.label("New run seed");
             ui.add(egui::TextEdit::singleline(&mut self.seed).desired_width(150.0));
@@ -199,22 +206,31 @@ impl EconomyApp {
             ui.label("Starting year");
             ui.add(egui::DragValue::new(&mut self.start));
             if ui.button("Start new simulation").clicked() {
-                let r = self.new_simulation();
-                self.report(r, "New simulation started; previous live history replaced");
+                self.confirm_run = Some(false);
             }
-            if ui.button("Reset simulation").clicked()
-                && let Some(c) = &mut self.controller
-            {
-                let r = c.reset();
-                self.report(
-                    r,
-                    "Reset to the active run's original seed, year and configuration",
-                );
+            if ui.button("Reset simulation").clicked() {
+                self.confirm_run = Some(true);
             }
         });
         ui.small("New / Reset replaces live history. Export first to keep a record. Validated configuration is applied only to New.");
+        ui.small("Use Scenario Builder → Start this scenario to apply current draft edits.");
+        });
     }
     fn configuration(&mut self, ui: &mut egui::Ui) {
+        if let Some((config, year, seed)) = self.editor.ui(ui) {
+            let result = Controller::new(year, seed, config.clone());
+            match result {
+                Ok(controller) => {
+                    self.controller = Some(controller);
+                    self.start = year;
+                    self.seed = seed.to_string();
+                    self.validated = Some(config);
+                    self.report(Ok(()), "Started the validated scenario draft");
+                }
+                Err(e) => self.report(Err(e), ""),
+            }
+        }
+        ui.collapsing("Legacy TOML loader and provenance", |ui| {
         ui.label("Select TOML files by path (relative to the working directory, or absolute).");
         egui::Grid::new("config_paths").show(ui, |ui| {
             ui.label("Engine TOML");
@@ -241,6 +257,7 @@ impl EconomyApp {
         if ui.button("Validate configuration").clicked() {
             match controller::load_configuration(&self.engine_path, &self.scenario_path) {
                 Ok(c) => {
+                    self.editor = super::editor::Editor::new(c.clone(), self.start, self.parse_seed().unwrap_or(42));
                     self.validated = Some(c);
                     self.report(Ok(()),"Configuration valid; Start new simulation to apply this validated snapshot");
                 }
@@ -260,6 +277,7 @@ impl EconomyApp {
             ui.strong("Active simulation provenance");
             provenance(ui, c.simulation().config());
         }
+        });
     }
     fn comparison(&mut self, ui: &mut egui::Ui) {
         ui.label("Uses the active simulation's configuration. Explicit seeds preserve order and duplicates.");
@@ -310,7 +328,7 @@ impl EconomyApp {
         }
         if let Some(c) = &mut self.comparison {
             ui.label(format!(
-                "{} / {} seeds complete • years {}–{}",
+                "{} / {} seeds complete · years {}–{}",
                 c.outcomes.len(),
                 c.seeds.len(),
                 c.request.start_year,
@@ -322,7 +340,7 @@ impl EconomyApp {
             }
             if let Some(sim) = &c.active {
                 ui.label(format!(
-                    "Seed {} • next year {}",
+                    "Seed {} · next year {}",
                     sim.seed(),
                     sim.current_year()
                 ));
@@ -366,48 +384,93 @@ impl EconomyApp {
             ui.small("Company event counts exclude global economy events. Exports retain the existing format's all-event count per seed.");
         }
     }
+    fn perform_export(&mut self, path: std::path::PathBuf, kind: usize) {
+        let result = (|| match kind {
+            0 | 1 => self
+                .controller
+                .as_ref()
+                .ok_or_else(|| SimulationError::InvalidInput("Start a simulation first.".into()))?
+                .export(&path, kind == 1),
+            2 => {
+                controller::validate_export_path(&path, "json")?;
+                let c = self
+                    .comparison
+                    .as_ref()
+                    .filter(|c| !c.running && c.outcomes.len() == c.seeds.len())
+                    .ok_or_else(|| {
+                        SimulationError::InvalidInput(
+                            "Complete a seed comparison before exporting it.".into(),
+                        )
+                    })?;
+                export::write_document(
+                    &export::comparison_document(&c.request, &c.config, &c.outcomes),
+                    &path,
+                )
+            }
+            _ => {
+                controller::validate_export_path(&path, "json")?;
+                let c = self.controller.as_ref().ok_or_else(|| {
+                    SimulationError::InvalidInput("Start a simulation first.".into())
+                })?;
+                export::write_document(
+                    &export::snapshot_document(c.simulation(), c.company)?,
+                    &path,
+                )
+            }
+        })();
+        self.report(
+            result,
+            "Analysis exported. Use Scenario Builder exports for re-importable starting values.",
+        );
+    }
     fn exports(&mut self, ui: &mut egui::Ui) {
-        ui.collapsing("Export analysis", |ui| {
-            ui.label("Output path (export replaces an existing file at this path)");
+        ui.collapsing("Export history / current snapshot", |ui| {
+            ui.label("Analysis only — these files cannot be imported as starting scenarios.");
+            ui.label("Output path (.json, or .csv for CSV history)");
             ui.text_edit_singleline(&mut self.export_path);
-            let path = std::path::PathBuf::from(&self.export_path);
             ui.horizontal_wrapped(|ui| {
-                for (label, csv) in [("History JSON", false), ("CSV + metadata sidecar", true)] {
-                    if ui.button(label).clicked()
-                        && let Some(c) = &self.controller
-                    {
-                        let r = c.export(&path, csv);
-                        self.report(r, "Export completed");
+                for (kind,label) in ["History JSON", "History CSV + metadata", "Seed comparison JSON", "Current company snapshot JSON"].iter().enumerate() {
+                    if ui.button(*label).on_hover_text("Export recorded simulation state for analysis; monetary values remain exact. Existing files require overwrite confirmation.").clicked() {
+                        let path=std::path::PathBuf::from(&self.export_path);
+                        if path.exists() || (kind==1 && std::path::PathBuf::from(format!("{}.metadata.json",path.display())).exists()) {
+                            self.pending_export=Some((path,kind));
+                        } else { self.perform_export(path,kind); }
                     }
-                }
-                if ui.button("Seed comparison JSON").clicked() {
-                    let r = match &self.comparison {
-                        Some(c) if !c.running && c.outcomes.len() == c.seeds.len() => {
-                            controller::validate_export_path(&path, "json").and_then(|()| {
-                                export::write_document(
-                                    &export::comparison_document(
-                                        &c.request,
-                                        &c.config,
-                                        &c.outcomes,
-                                    ),
-                                    &path,
-                                )
-                            })
-                        }
-                        _ => Err(SimulationError::InvalidInput(
-                            "Complete a seed comparison before exporting it".into(),
-                        )),
-                    };
-                    self.report(r, "Comparison exported");
                 }
             });
         });
+        if self.pending_export.is_some() {
+            let mut accept = false;
+            let mut cancel = false;
+            egui::Modal::new(egui::Id::new("overwrite_analysis")).show(ui.ctx(), |ui| {
+                ui.label(format!(
+                    "Replace {}{}?",
+                    self.pending_export.as_ref().unwrap().0.display(),
+                    if self.pending_export.as_ref().unwrap().1 == 1 {
+                        " and its metadata sidecar"
+                    } else {
+                        ""
+                    }
+                ));
+                ui.horizontal(|ui| {
+                    accept = ui.button("Overwrite").clicked();
+                    cancel = ui.button("Cancel").clicked();
+                });
+            });
+            if cancel {
+                self.pending_export = None;
+            }
+            if accept {
+                let (path, kind) = self.pending_export.take().unwrap();
+                self.perform_export(path, kind);
+            }
+        }
     }
 }
 fn provenance(ui: &mut egui::Ui, c: &SimulationConfig) {
     ui.label(
         format!(
-            "Engine: {:?} • Scenario: {:?} • Economics: {:?}",
+            "Engine: {:?} · Scenario: {:?} · Economics: {:?}",
             c.engine_status, c.scenario_status, c.economics.status
         )
         .to_uppercase(),
@@ -426,6 +489,26 @@ fn provenance(ui: &mut egui::Ui, c: &SimulationConfig) {
 }
 impl eframe::App for EconomyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        if let Some(reset) = self.confirm_run {
+            let mut accept = false;
+            let mut cancel = false;
+            egui::Modal::new(egui::Id::new("replace_run")).show(ctx, |ui| {
+                ui.label("This replaces the live simulation and its history. Export history first to keep it.");
+                ui.horizontal(|ui| { accept = ui.button("Confirm").clicked(); cancel = ui.button("Cancel").clicked(); });
+            });
+            if cancel {
+                self.confirm_run = None;
+            }
+            if accept {
+                self.confirm_run = None;
+                let r = if reset {
+                    self.controller.as_mut().map_or(Ok(()), Controller::reset)
+                } else {
+                    self.new_simulation()
+                };
+                self.report(r, "New run ready");
+            }
+        }
         if let Some(c) = &mut self.controller {
             let was_busy = c.busy();
             let r = c.tick();
@@ -455,7 +538,7 @@ impl eframe::App for EconomyApp {
                 if let Some(c) = &self.controller {
                     ui.separator();
                     ui.label(format!(
-                        "Next year {} • Seed {} • {}",
+                        "Next year {} · Seed {} · {}",
                         c.simulation().current_year(),
                         c.simulation().seed(),
                         if c.busy() { "RUNNING" } else { "PAUSED" }
@@ -479,7 +562,7 @@ impl eframe::App for EconomyApp {
                 .and_then(|c| c.simulation().events().last())
             {
                 ui.small(format!(
-                    "Recent event • {} • {} • {}",
+                    "Recent event · {} · {} · {}",
                     e.year,
                     e.entities.join(" / "),
                     e.description

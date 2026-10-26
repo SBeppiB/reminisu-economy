@@ -99,7 +99,7 @@ pub fn produce(
     offers: &[&Offer],
     a: &mut Accounts,
     config: &SimulationConfig,
-) -> Result<Vec<(u64, Money)>, SimulationError> {
+) -> Result<Vec<(u64, Money, u64)>, SimulationError> {
     let mut results = Vec::new();
     for offer in offers {
         let p = &company.products[offer.product];
@@ -119,7 +119,8 @@ pub fn produce(
         let result = company.products[offer.product].produce(units, company.cash)?;
         company.pay(result.1)?;
         a.production_spending = a.production_spending.checked_add(result.1)?;
-        results.push(result);
+        // Record the decision already made above; no recalculation or RNG use.
+        results.push((result.0, result.1, units));
     }
     Ok(results)
 }
@@ -134,7 +135,7 @@ pub struct YearContext<'a> {
 }
 struct ProductTrade<'a> {
     offer: &'a Offer,
-    produced: (u64, Money),
+    produced: (u64, Money, u64),
     competitor_price: Option<Money>,
 }
 fn settle_product(
@@ -234,6 +235,7 @@ fn settle_product(
     a.revenue = a.revenue.checked_add(revenue)?;
     a.cost_of_goods_sold = a.cost_of_goods_sold.checked_add(p.last_cogs)?;
     Ok(ProductHistoryRecord {
+        requested_production: Some(trade.produced.2),
         name: p.name.clone(),
         category: p.category.clone(),
         units_produced: trade.produced.0,
@@ -336,7 +338,7 @@ fn settle_finances(
 pub fn finish(
     company: &mut Faction,
     offers: &[&Offer],
-    produced: &[(u64, Money)],
+    produced: &[(u64, Money, u64)],
     prices: &[Option<Money>],
     mut a: Accounts,
     opening_cash: Money,

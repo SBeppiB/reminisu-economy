@@ -1,0 +1,123 @@
+{
+  "format_version": 1,
+  "kind": "scenario",
+  "scenario": {
+    "competitors": [],
+    "demand": {
+      "max_price_change_percent": 6,
+      "momentum_percent": 25,
+      "price_sensitivity_percent": 35,
+      "yearly_variation_percent": 18
+    },
+    "economics": {
+      "availability_percent": 30,
+      "backlog_percent": 25,
+      "bankruptcy_after_years": 3,
+      "bankruptcy_enabled": true,
+      "cash_reserve_percent": 100,
+      "competitor_price_weight_percent": 20,
+      "cost_price_weight_percent": 20,
+      "credit_spread_bps": 200,
+      "demand_conditions_bps": 10000,
+      "depreciation_percent": 10,
+      "desired_margin_percent": 30,
+      "excess_inventory_percent": 200,
+      "expansion_cost_multiple": 3,
+      "expansion_percent": 10,
+      "growth_bps": 100,
+      "inflation_bps": 200,
+      "interest_bps": 400,
+      "inventory_price_weight_percent": 8,
+      "loyalty_percent": 20,
+      "macro_volatility_bps": 150,
+      "maintenance_bps": 100,
+      "recent_price_sensitivity_percent": 30,
+      "repayment_percent": 25,
+      "research_cash_percent": 0,
+      "research_limit_bps": 3000,
+      "research_step_bps": 250,
+      "research_success_percent": 40,
+      "share_event_threshold_bps": 1000,
+      "shock_probability_percent": 8,
+      "shock_size_bps": 1500,
+      "status": "PLACEHOLDER",
+      "stockout_price_weight_percent": 4
+    },
+    "engine_status": "PLACEHOLDER",
+    "markets": [
+      {
+        "annual_customers": 16,
+        "category": "Tactical exosuits",
+        "growth_bps": 0,
+        "maximum_customers": 64
+      },
+      {
+        "annual_customers": 6,
+        "category": "Heavy exosuits",
+        "growth_bps": 0,
+        "maximum_customers": 24
+      }
+    ],
+    "pilton": {
+      "base_operating_expenses": {
+        "currency": "Ufc",
+        "minor_units": "14500000"
+      },
+      "credit_limit": {
+        "currency": "Ufc",
+        "minor_units": "50000000"
+      },
+      "name": "Pilton Dynamics",
+      "primary_currency": "Ufc",
+      "starting_cash": {
+        "currency": "Ufc",
+        "minor_units": "125000000"
+      },
+      "starting_debt": null
+    },
+    "production": {
+      "inventory_buffer_percent": 125
+    },
+    "products": [
+      {
+        "base_demand": 12,
+        "category": "Tactical exosuits",
+        "input_share_percent": 60,
+        "maximum_capacity": 64,
+        "name": "E.N.D Suits",
+        "popularity_percent": 105,
+        "production_capacity": 16,
+        "production_cost": {
+          "currency": "Ufc",
+          "minor_units": "6200000"
+        },
+        "starting_inventory": 2,
+        "starting_market_value": {
+          "currency": "Ufc",
+          "minor_units": "9600000"
+        }
+      },
+      {
+        "base_demand": 4,
+        "category": "Heavy exosuits",
+        "input_share_percent": 70,
+        "maximum_capacity": 24,
+        "name": "A.B.Y.S.S Suits",
+        "popularity_percent": 100,
+        "production_capacity": 6,
+        "production_cost": {
+          "currency": "Ufc",
+          "minor_units": "18000000"
+        },
+        "starting_inventory": 1,
+        "starting_market_value": {
+          "currency": "Ufc",
+          "minor_units": "27500000"
+        }
+      }
+    ],
+    "scenario_status": "PLACEHOLDER"
+  },
+  "seed": "42",
+  "start_year": 3421
+}

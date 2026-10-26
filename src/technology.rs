@@ -6,6 +6,8 @@ use crate::simulation::{SimpleRng, SimulationError};
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct ProductConfig {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub starting_inventory_basis: Option<Money>,
     #[serde(default)]
     pub category: String,
     #[serde(default = "default_input_share")]
@@ -67,6 +69,16 @@ pub struct ProductYearResult {
 
 impl Product {
     pub fn from_config(config: ProductConfig) -> Result<Self, SimulationError> {
+        if let Some(basis) = config.starting_inventory_basis
+            && (basis.currency() != config.production_cost.currency()
+                || basis.minor_units() < 0
+                || (config.starting_inventory == 0 && basis.minor_units() != 0))
+        {
+            return Err(SimulationError::InvalidInput(format!(
+                "{}: Inventory basis must be nonnegative, use the product currency, and be zero for empty inventory.",
+                config.name
+            )));
+        }
         if config.production_cost.minor_units() < 0 {
             return Err(SimulationError::InvalidInput(format!(
                 "{} has negative production cost",
@@ -96,9 +108,12 @@ impl Product {
             maximum_capacity: config
                 .maximum_capacity
                 .unwrap_or(config.production_capacity.saturating_mul(4)),
-            inventory_cost_basis: config
-                .production_cost
-                .checked_mul_quantity(config.starting_inventory)?,
+            inventory_cost_basis: match config.starting_inventory_basis {
+                Some(basis) => basis,
+                None => config
+                    .production_cost
+                    .checked_mul_quantity(config.starting_inventory)?,
+            },
             last_cogs: Money::zero(config.production_cost.currency()),
             nominal_production_cost: config.production_cost,
             previous_price: config.starting_market_value,
